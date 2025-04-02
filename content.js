@@ -1,21 +1,44 @@
+async function getTranslation(key) {
+  let language;
+  try {
+    const result = await chrome.storage.sync.get(['language']);
+    language = result.language;
+  } catch (error) {
+    // Handle case when extension context is invalidated
+    console.error('Extension context error:', error);
+    language = 'en'; // Default to English if storage access fails
+  }
+  const currentLang = language || 'en';
+  return i18n[currentLang][key];
+}
+
 async function loadAllCommentsAndSearch(query) {
   // Send initial status
-  createWaitingPopup();
+  await createWaitingPopup();
 
   // Load all comments first
   await loadAllComments();
   
   // Remove waiting popup and show search UI
   document.getElementById('fbCommentWaitingPopup')?.remove();
-  createSearchUI();
+  await createSearchUI();
 }
 
 async function loadAllComments() {
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const config = await chrome.storage.sync.get(['openAllReplies']);
+  const mostRelevant = await getTranslation('mostRelevant'); 
+  const allComments = await getTranslation('allComments'); 
+  const viewAllReplies = await getTranslation('viewAllReplies'); 
+  const reply = await getTranslation('reply'); 
+  const viewReplies = await getTranslation('viewReplies'); 
+  const hasReplied = await getTranslation('hasReplied'); 
+  const viewMoreComments = await getTranslation('viewMoreComments'); 
+
 
 // query to all span tag with class name x193iq5w xeuugli x13faqbe x1vvkbs x1xmvt09 x1lliihq x1s928wv xhkezso x1gmr53x x1cpjm7i x1fgarty x1943h6x xudqn12 x3x7a5m x6prxxf xvq8zen x1s688f xi81zsa
   const sortButton = Array.from(document.querySelectorAll('span.x193iq5w.xeuugli.x13faqbe.x1vvkbs.x1xmvt09.x1lliihq.x1s928wv.xhkezso.x1gmr53x.x1cpjm7i.x1fgarty.x1943h6x.xudqn12.x3x7a5m.x6prxxf.xvq8zen.x1s688f.xi81zsa'))
-  .filter(button => button.textContent.includes('Phù hợp nhất'));
+  .filter(button => button.textContent.includes(mostRelevant));
 
   if (sortButton.length === 0) {
     return;
@@ -27,7 +50,7 @@ async function loadAllComments() {
 const allCommentOptions = Array.from(document.querySelectorAll('div.x1i10hfl.xjbqb8w.x1ejq31n.xd10rxx.x1sy0etr.x17r0tee.x972fbf.xcfux6l.x1qhh985.xm0m39n.xe8uvvx.x1hl2dhg.xggy1nq.x1o1ewxj.x3x9cwd.x1e5q0jg.x13rtm0m.x87ps6o.x1lku1pv.x1a2a7pz.xjyslct.x9f619.x1ypdohk.x78zum5.x1q0g3np.x2lah0s.x1i6fsjq.xfvfia3.xnqzcj9.x1gh759c.x10wwi4t.x1x7e7qh.x1344otq.x1de53dj.x1n2onr6.x16tdsg8.x1ja2u2z.x6s0dn4'))
   .filter(div => {
     const spanElements = div.querySelectorAll('span');
-    return Array.from(spanElements).some(span => span.textContent.includes('Tất cả bình luận'));
+    return Array.from(spanElements).some(span => span.textContent.includes(allComments));
   });
 
   allCommentOptions[0].click();
@@ -38,7 +61,7 @@ const allCommentOptions = Array.from(document.querySelectorAll('div.x1i10hfl.xjb
     await delay(1000);
 
     const seeMoreButton = Array.from(document.querySelectorAll('div.x9f619.x78zum5.xl56j7k.x2lwn1j.xeuugli.x47corl.x1qjc9v5.x1bwycvy.x1e558r4.x150jy0e.x1miatn0.x1gan7if.x2z19jh.x2tomnu span.x193iq5w.xeuugli.x13faqbe.x1vvkbs.x1xmvt09.x1lliihq.x1s928wv.xhkezso.x1gmr53x.x1cpjm7i.x1fgarty.x1943h6x.xudqn12.x3x7a5m.x6prxxf.xvq8zen.x1s688f.xi81zsa'))
-    .filter(button => button.textContent.includes('Xem thêm bình luận'));
+    .filter(button => button.textContent.includes(viewMoreComments));
 
     if (seeMoreButton.length == 0) {
       // capture the latest scroll height
@@ -50,7 +73,6 @@ const allCommentOptions = Array.from(document.querySelectorAll('div.x1i10hfl.xjb
         break;
       }
     } else {
-      alert("click this button")
       seeMoreButton.forEach(button => button.click());
       // capture the latest scroll height
       const currentScrollHeight = getLatestScrollHeight();
@@ -64,27 +86,26 @@ const allCommentOptions = Array.from(document.querySelectorAll('div.x1i10hfl.xjb
   }
 
   let time = 0;
-  while (time < 50) {
+  while (time < 50 && config.openAllReplies) {
     // unpack all collpase responses
     // !!!CAUTION: unpack all responses may cause performance issue for your browser
-    // const collapseButtons = Array.from(document.querySelectorAll('div.x9f619.x78zum5.xl56j7k.x2lwn1j.xeuugli.x47corl.x1qjc9v5.x1bwycvy.x1e558r4.x150jy0e.x1miatn0.x1gan7if.x2z19jh.x2tomnu span.x193iq5w.xeuugli.x13faqbe.x1vvkbs.x1xmvt09.x1lliihq.x1s928wv.xhkezso.x1gmr53x.x1cpjm7i.x1fgarty.x1943h6x.xudqn12.x3x7a5m.x6prxxf.xvq8zen.x1s688f.xi81zsa'))
-    // .filter(button => 
-    //   (button.textContent.includes('Xem tất cả') && 
-    //   button.textContent.includes('phản hồi')) ||
-    //   (button.textContent.includes('Xem') && 
-    //   button.textContent.includes('phản hồi')) ||
-    //   (button.textContent.includes('đã trả lời') && 
-    //   button.textContent.includes('phản hồi'))
-    // );
-    // if (collapseButtons.length == 0) {
-    //   break;
-    // }
-    // collapseButtons.forEach(button => button.click());
-    // await delay(1000)
+    let replyKeywords = reply.split(',');
+    
+    const collapseButtons = Array.from(document.querySelectorAll('div.x9f619.x78zum5.xl56j7k.x2lwn1j.xeuugli.x47corl.x1qjc9v5.x1bwycvy.x1e558r4.x150jy0e.x1miatn0.x1gan7if.x2z19jh.x2tomnu span.x193iq5w.xeuugli.x13faqbe.x1vvkbs.x1xmvt09.x1lliihq.x1s928wv.xhkezso.x1gmr53x.x1cpjm7i.x1fgarty.x1943h6x.xudqn12.x3x7a5m.x6prxxf.xvq8zen.x1s688f.xi81zsa'))
+    .filter(button => 
+      (button.textContent.includes(viewAllReplies) ||
+      button.textContent.includes(viewReplies) ||
+      button.textContent.includes(hasReplied)) &&
+      (replyKeywords.length === 1 ? button.textContent.includes(replyKeywords[0]) : replyKeywords.some(keyword => button.textContent.includes(keyword)))
+    );
+    if (collapseButtons.length == 0) {
+      break;
+    }
+    collapseButtons.forEach(button => button.click());
+    // to wait other responses to load
+    await delay(3000)
     time += 1;
   }
-
-  await delay(2000)
 }
 
 function getLatestScrollHeight() {
@@ -154,7 +175,8 @@ function displaySearchResults(results) {
   });
 }
 
-function createSearchUI() {
+async function createSearchUI() {
+  const searchCommentsKeyword = await getTranslation('searchComments'); 
   const searchContainer = document.createElement('div');
   searchContainer.innerHTML = `
     <div style="
@@ -170,7 +192,7 @@ function createSearchUI() {
       font-family: Arial, sans-serif;
     ">
       <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-        <h3 style="margin: 0;">Search Comments</h3>
+        <h3 style="margin: 0;">${searchCommentsKeyword}</h3>
         <button id="fbCommentSearchClose" style="border: none; background: none; cursor: pointer;">✕</button>
       </div>
       <input type="text" id="fbCommentSearchInput" placeholder="Search in comments..." style="
@@ -271,7 +293,9 @@ function addSearchButton() {
   }
 }
 
-function createWaitingPopup() {
+async function createWaitingPopup() {
+  const loadingComments = await getTranslation('loadingComments'); 
+  const pleaseWait = await getTranslation('pleaseWait'); 
   const waitingContainer = document.createElement('div');
   waitingContainer.id = 'fbCommentWaitingPopup';
   waitingContainer.innerHTML = `
@@ -305,8 +329,8 @@ function createWaitingPopup() {
           }
         </style>
       </div>
-      <div>Loading all comments...</div>
-      <div style="font-size: 12px; color: #65676B; margin-top: 8px;">This might take a few minutes</div>
+      <div${loadingComments}</div>
+      <div style="font-size: 12px; color: #65676B; margin-top: 8px;">${pleaseWait}</div>
     </div>
   `;
   document.body.appendChild(waitingContainer);
